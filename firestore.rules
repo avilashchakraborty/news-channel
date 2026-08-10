@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function auth_() { return request.auth; }
+    function uid()   { return request.auth.uid; }
+    function member(tenantId) {
+      return get(/databases/$(database)/documents/memberships/$(uid() + '_' + tenantId)).data;
+    }
+    function hasMembership(tenantId) {
+      return auth_() != null &&
+        exists(/databases/$(database)/documents/memberships/$(uid() + '_' + tenantId));
+    }
+    function role(tenantId) { return member(tenantId).role; }
+    function active(tenantId) { return member(tenantId).status == 'active'; }
+    function rank(r) {
+      return r == 'viewer' ? 1 : r == 'reporter' ? 2 : r == 'moderator' ? 3
+           : r == 'admin' ? 4 : r == 'superadmin' ? 5 : 0;
+    }
+    function atLeast(tenantId, r) {
+      return hasMembership(tenantId) && active(tenantId) && rank(role(tenantId)) >= rank(r);
+    }
+    function inScope(tenantId, districtId) {
+      return atLeast(tenantId, 'admin') ||
+             (atLeast(tenantId, 'moderator') &&
+              (member(tenantId).districtScope.size() == 0 ||
+               districtId in member(tenantId).districtScope));
+    }
+
+    match /tenants/{tenantId} {
+      allow read: if resource.data.status == 'active';
+      allow update: if atLeast(tenantId, 'admin')
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['name','brandColor','logoSvg','tagline','districts']);
+      allow create, delete: if false;   // superadmin via Cloud Function only
+    }
+
+    match /districts/{districtId} {
+      allow read: if resource.data.status == 'active' || hasMembership(resource.data.tenantId);
+      allow write: if false;            // Cloud Functions only
+    }
+
+    match /users/{userId} {
+      allow read: if auth_() != null;
+      allow update: if uid() == userId
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['displayName','photoURL','homeDistrictId','languages',
+                                   'lastActiveAt','defaultTenantId']);
+      allow create, delete: if false;   // onUserCreate / deleteAccount only
+    }
+
+    match /usernames/{handle} { allow read: if true; allow write: if false; }
+
+    match /memberships/{membershipId} {
+      allow read: if auth_() != null && (resource.data.uid == uid()
+                                        || atLeast(resource.data.tenantId, 'moderator'));
+      allow write: if false;            // setMembershipRole only — see §5
+    }
+
+    match /videos/{videoId} {
+      allow read: if resource.data.status == 'published'
+                  || resource.data.creatorId == uid()
+                  || inScope(resource.data.tenantId, resource.data.districtId);
+      allow create, update, delete: if false;   // all writes via functions
+    }
+
+    match /videos/{videoId}/comments/{commentId} {
+      allow read: if resource.data.status == 'visible';
+      allow create: if auth_() != null
+                    && request.resource.data.uid == uid()
+                    && request.resource.data.body.size() > 0
+                    && request.resource.data.body.size() <= 500;
+      allow delete: if resource.data.uid == uid();
+      allow update: if false;
+    }
+
+    match /videos/{videoId}/likes/{likeId} {
+      allow read: if auth_() != null;
+      allow create, delete: if auth_() != null && likeId == uid();
+      allow update: if false;
+    }
+
+    // View/like/comment counter shards are written by Cloud Functions only.
+    match /videos/{videoId}/viewShards/{shardId}    { allow read: if false; allow write: if false; }
+    match /videos/{videoId}/likeShards/{shardId}    { allow read: if false; allow write: if false; }
+    match /videos/{videoId}/commentShards/{shardId} { allow read: if false; allow write: if false; }
+
+    match /users/{userId}/{sub=**} {
+      allow read, write: if uid() == userId;
+    }
+
+    match /moderationQueue/{videoId} {
+      allow read, update: if inScope(resource.data.tenantId, resource.data.districtId);
+      allow create, delete: if false;
+    }
+
+    match /moderationActions/{actionId} {
+      allow read: if atLeast(resource.data.tenantId, 'moderator');
+      allow write: if false;            // immutable audit log
+    }
+
+    match /verificationRequests/{requestId} {
+      allow read: if resource.data.uid == uid()
+                  || inScope(resource.data.tenantId, resource.data.districtId);
+      allow write: if false;            // phoneEncrypted must never be client-writable
+    }
+
+    match /reports/{reportId} {
+      allow create: if auth_() != null && request.resource.data.reportedBy == uid();
+      allow read, update: if atLeast(resource.data.tenantId, 'moderator');
+    }
+
+    match /stats/{statId} { allow read: if auth_() != null; allow write: if false; }
+
+    // Rate-limit ledger is server-only.
+    match /rateLimits/{docId} { allow read, write: if false; }
+  }
+}

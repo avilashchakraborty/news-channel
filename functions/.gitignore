@@ -1,0 +1,11 @@
+node_modules/
+# Compiled output only — NOT the src/lib source directory.
+/lib/
+*.log
+.env
+.env.*
+!.env.example
+.runtimeconfig.json
+ui-debug.log
+firebase-debug.log
+firestore-debug.log
