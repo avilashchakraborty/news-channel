@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd g+-india-news && npm install",
+  "buildCommand": "cd g+-india-news && npm run build",
+  "outputDirectory": "g+-india-news/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
