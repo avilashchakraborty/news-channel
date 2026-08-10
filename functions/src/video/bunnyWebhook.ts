@@ -9,6 +9,7 @@ import {
 import { db } from "../lib/firestore";
 import {
   BunnyConfig,
+  BunnyVideoDetails,
   verifyBunnyWebhook,
   getBunnyVideo,
   playbackUrl,
@@ -71,7 +72,7 @@ export const bunnyWebhook = onRequest(
     };
 
     if (isEncoded) {
-      let details;
+      let details: BunnyVideoDetails | undefined;
       try {
         details = await getBunnyVideo(cfg, guid);
       } catch (e) {
