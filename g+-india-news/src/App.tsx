@@ -801,7 +801,7 @@ export function ScreenA({ onComplete }: { onComplete: () => void }) {
 // SCREEN B: MY ACCOUNT
 // ==========================================
 
-export function ScreenB({ onSelectTenant }: { onSelectTenant: (tenantId: string) => void }) {
+export function ScreenB({ onSelectTenant, onNavigate }: { onSelectTenant: (tenantId: string) => void; onNavigate?: (screen: "C" | "D") => void }) {
   const [role, setRole] = useState<"viewer" | "reporter" | "moderator" | "admin">("reporter");
   const [activeTab, setActiveTab] = useState<string>("Reports");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -930,7 +930,7 @@ export function ScreenB({ onSelectTenant }: { onSelectTenant: (tenantId: string)
                 <StatCell label="Reviewed" value="128" />
               </div>
               <span style={{ fontSize: "11px", color: "var(--chrome-soft)" }}>Scope: Durgapur, Asansol</span>
-              <Pill variant="brand">Open queue</Pill>
+              <Pill variant="brand" onClick={() => onNavigate?.("C")}>Open queue</Pill>
             </>
           )}
 
@@ -942,7 +942,7 @@ export function ScreenB({ onSelectTenant }: { onSelectTenant: (tenantId: string)
                 <StatCell label="Users" value="1,204" />
                 <StatCell label="Pending" value="9" tone="brand" />
               </div>
-              <Pill variant="brand">Open console</Pill>
+              <Pill variant="brand" onClick={() => onNavigate?.("D")}>Open console</Pill>
               <Pill variant="outline">Manage reporters</Pill>
             </>
           )}
@@ -1840,49 +1840,42 @@ export default function App() {
         }
       `}</style>
 
-      {/* DEV ONLY — remove before ship */}
-      <div
-        style={{
-          height: "40px",
-          backgroundColor: "var(--panel-2)",
-          borderBottom: "1px solid var(--line)",
-          display: "flex",
-          alignItems: "center",
-          padding: "0 16px",
-          gap: "12px",
-          zIndex: 9999,
-          position: "sticky",
-          top: 0,
-        }}
-      >
-        <span style={{ fontSize: "11px", color: "var(--chrome-soft)", fontFamily: "Archivo, sans-serif" }}>Screens</span>
-
-        <div style={{ display: "flex", gap: "6px" }}>
-          {[
-            { key: "HOME", label: "Home" },
-            { key: "A", label: "Sign in" },
-            { key: "B", label: "My account" },
-            { key: "C", label: "Moderation" },
-            { key: "D", label: "Admin" },
-          ].map((s) => (
-            <Pill
-              key={s.key}
-              variant={screen === s.key ? "brand" : "outline"}
-              onClick={() => setScreen(s.key as "HOME" | "A" | "B" | "C" | "D")}
-              style={{ padding: "2px 8px", fontSize: "11px" }}
-            >
-              {s.label}
-            </Pill>
-          ))}
-        </div>
-      </div>
+      {/* Floating home control on the app/console screens — the public site
+          leads with the portal, so there is no dev bar. */}
+      {screen !== "HOME" && (
+        <button
+          onClick={() => setScreen("HOME")}
+          style={{
+            position: "fixed",
+            top: "14px",
+            left: "14px",
+            zIndex: 9999,
+            height: "34px",
+            padding: "0 14px",
+            borderRadius: "999px",
+            border: "none",
+            background: "var(--brand)",
+            color: "#fff",
+            fontFamily: "Archivo, sans-serif",
+            fontWeight: 700,
+            fontSize: "13px",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            cursor: "pointer",
+            boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
+          }}
+        >
+          ‹ Home
+        </button>
+      )}
 
       {/* Active Screen Container */}
-      <div style={{ height: "calc(100vh - 40px)", overflow: "hidden" }}>
+      <div style={{ height: "100vh", overflow: "hidden" }}>
         {/* HOME — the public web portal (SEO surface), scrolls on its own */}
         {screen === "HOME" && (
           <div style={{ width: "100%", height: "100%", overflowY: "auto" }}>
-            <Portal />
+            <Portal onNavigate={setScreen} />
           </div>
         )}
 
@@ -1912,7 +1905,7 @@ export default function App() {
               }}
             >
               {screen === "A" && <ScreenA onComplete={() => setScreen("B")} />}
-              {screen === "B" && <ScreenB onSelectTenant={setTenant} />}
+              {screen === "B" && <ScreenB onSelectTenant={setTenant} onNavigate={setScreen} />}
             </div>
           </div>
         )}
