@@ -1,6 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 
 // ==========================================
+// RESPONSIVE HELPER
+// ==========================================
+
+// Tracks the viewport width so each screen can adapt its layout
+// between desktop (multi-column) and mobile (stacked) presentations.
+function useViewportWidth() {
+  const [width, setWidth] = useState<number>(typeof window !== "undefined" ? window.innerWidth : 1280);
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return width;
+}
+
+// ==========================================
 // SHARED PRIMITIVES
 // ==========================================
 
@@ -1232,10 +1248,26 @@ export function ScreenC() {
 
   const activeItem = queue[focusedIndex] || queue[0];
 
+  const vw = useViewportWidth();
+  const compact = vw < 900; // collapse the 3-column layout
+  const isMobile = vw < 640;
+
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", backgroundColor: "var(--void)" }}>
       {/* Top Bar */}
-      <div style={{ height: "56px", backgroundColor: "var(--panel)", borderBottom: "1px solid var(--line)", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div
+        style={{
+          minHeight: "56px",
+          backgroundColor: "var(--panel)",
+          borderBottom: "1px solid var(--line)",
+          padding: compact ? "10px 12px" : "0 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: compact ? "wrap" : "nowrap",
+          gap: "8px",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <Logo height={20} />
           <div style={{ width: "1px", height: "16px", backgroundColor: "var(--line)" }} />
@@ -1259,17 +1291,29 @@ export function ScreenC() {
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span>🔔</span>
           <Avatar initial="M" size={32} />
-          <span style={{ fontSize: "13px", color: "var(--chrome-soft)" }}>@moderator_dgp</span>
+          {!isMobile && <span style={{ fontSize: "13px", color: "var(--chrome-soft)" }}>@moderator_dgp</span>}
         </div>
       </div>
 
       {/* Main 3 Column Layout */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: compact ? "column" : "row", overflow: compact ? "auto" : "hidden" }}>
         {/* Left Column (300px) */}
-        <div style={{ width: "300px", backgroundColor: "var(--panel)", borderRight: "1px solid var(--line)", padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div
+          style={{
+            width: compact ? "100%" : "300px",
+            flex: "none",
+            backgroundColor: "var(--panel)",
+            borderRight: compact ? "none" : "1px solid var(--line)",
+            borderBottom: compact ? "1px solid var(--line)" : "none",
+            padding: "16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
           <span style={{ fontSize: "11px", color: "var(--chrome-soft)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>Queue</span>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", flexDirection: compact ? "row" : "column", gap: compact ? "8px" : "4px", overflowX: compact ? "auto" : "visible" }}>
             {[
               { label: "Waiting", count: queue.length, tone: "brand" },
               { label: "Flagged", count: 3, tone: "warn" },
@@ -1283,6 +1327,9 @@ export function ScreenC() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  gap: "8px",
+                  flex: "none",
+                  whiteSpace: "nowrap",
                   padding: "10px 12px",
                   backgroundColor: activeFilter === f.label ? "var(--panel-2)" : "transparent",
                   borderLeft: activeFilter === f.label ? "2px solid var(--brand)" : "none",
@@ -1302,10 +1349,12 @@ export function ScreenC() {
         </div>
 
         {/* Center Column */}
-        <div style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ flex: compact ? "none" : 1, padding: compact ? "12px" : "20px", overflowY: compact ? "visible" : "auto", display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
             <h2 style={{ fontSize: "18px", color: "var(--chrome)", fontWeight: 700 }}>{queue.length} waiting</h2>
-            <span style={{ fontSize: "11px", color: "var(--chrome-soft)" }}>J / K to move · A to approve · R to reject · Esc to close</span>
+            {!isMobile && (
+              <span style={{ fontSize: "11px", color: "var(--chrome-soft)" }}>J / K to move · A to approve · R to reject · Esc to close</span>
+            )}
           </div>
 
           {queue.length === 0 ? (
@@ -1326,6 +1375,7 @@ export function ScreenC() {
                     borderRadius: "8px",
                     padding: "16px",
                     display: "flex",
+                    flexWrap: isMobile ? "wrap" : "nowrap",
                     gap: "16px",
                   }}
                 >
@@ -1343,7 +1393,7 @@ export function ScreenC() {
                     </span>
                   </div>
 
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div style={{ flex: 1, minWidth: isMobile ? "55%" : "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
                     <h3 style={{ fontSize: "15px", color: "var(--chrome)", fontWeight: 600 }}>{item.headline}</h3>
                     <p style={{ fontSize: "13px", color: "var(--chrome-soft)" }}>{item.description}</p>
                     <span style={{ fontSize: "11px", color: "var(--chrome-soft)" }}>
@@ -1361,14 +1411,14 @@ export function ScreenC() {
                     )}
                   </div>
 
-                  <div style={{ width: "140px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <Pill variant="pass" onClick={() => handleApprove(item.id)}>
+                  <div style={{ width: isMobile ? "100%" : "140px", display: "flex", flexDirection: isMobile ? "row" : "column", gap: "6px" }}>
+                    <Pill variant="pass" onClick={() => handleApprove(item.id)} style={{ flex: isMobile ? 1 : undefined }}>
                       Approve
                     </Pill>
-                    <Pill variant="stop" onClick={() => setRejectModalOpen(true)}>
+                    <Pill variant="stop" onClick={() => setRejectModalOpen(true)} style={{ flex: isMobile ? 1 : undefined }}>
                       Reject
                     </Pill>
-                    <Pill variant="outline">Escalate</Pill>
+                    <Pill variant="outline" style={{ flex: isMobile ? 1 : undefined }}>Escalate</Pill>
                   </div>
                 </div>
               ))}
@@ -1391,7 +1441,19 @@ export function ScreenC() {
         </div>
 
         {/* Right Column (320px): Reporter Details */}
-        <div style={{ width: "320px", backgroundColor: "var(--panel)", borderLeft: "1px solid var(--line)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div
+          style={{
+            width: compact ? "100%" : "320px",
+            flex: "none",
+            backgroundColor: "var(--panel)",
+            borderLeft: compact ? "none" : "1px solid var(--line)",
+            borderTop: compact ? "1px solid var(--line)" : "none",
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
           <span style={{ fontSize: "11px", color: "var(--chrome-soft)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>Reporter</span>
 
           {activeItem && (
@@ -1501,10 +1563,13 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
     document.documentElement.style.setProperty("--brand", col);
   };
 
+  const vw = useViewportWidth();
+  const compact = vw < 768; // stack nav above content on smaller screens
+
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", backgroundColor: "var(--void)" }}>
       {/* Top Bar */}
-      <div style={{ height: "56px", backgroundColor: "var(--panel)", borderBottom: "1px solid var(--line)", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ height: "56px", backgroundColor: "var(--panel)", borderBottom: "1px solid var(--line)", padding: compact ? "0 12px" : "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ position: "relative" }}>
           <button
             onClick={() => setTenantDropdown(!tenantDropdown)}
@@ -1544,21 +1609,37 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
       </div>
 
       {/* Main Grid */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: compact ? "column" : "row", overflow: compact ? "auto" : "hidden" }}>
         {/* Left Nav (240px) */}
-        <div style={{ width: "240px", backgroundColor: "var(--panel)", borderRight: "1px solid var(--line)", padding: "16px 0", display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            width: compact ? "100%" : "240px",
+            flex: "none",
+            backgroundColor: "var(--panel)",
+            borderRight: compact ? "none" : "1px solid var(--line)",
+            borderBottom: compact ? "1px solid var(--line)" : "none",
+            padding: compact ? "8px" : "16px 0",
+            display: "flex",
+            flexDirection: compact ? "row" : "column",
+            overflowX: compact ? "auto" : "visible",
+          }}
+        >
           {["Overview", "Districts", "Users", "Reporter approvals", "Moderators", "Content", "Branding", "Settings"].map((item) => (
             <button
               key={item}
               onClick={() => setNav(item)}
               style={{
-                padding: "12px 20px",
+                padding: compact ? "10px 14px" : "12px 20px",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
+                justifyContent: compact ? "center" : "space-between",
+                gap: "6px",
+                flex: "none",
+                whiteSpace: "nowrap",
                 backgroundColor: nav === item ? "var(--panel-2)" : "transparent",
-                borderLeft: nav === item ? "2px solid var(--brand)" : "none",
                 border: "none",
+                borderLeft: !compact && nav === item ? "2px solid var(--brand)" : undefined,
+                borderBottom: compact && nav === item ? "2px solid var(--brand)" : undefined,
                 color: nav === item ? "var(--chrome)" : "var(--chrome-soft)",
                 fontSize: "13px",
                 cursor: "pointer",
@@ -1574,14 +1655,14 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
         </div>
 
         {/* Content Area */}
-        <div style={{ flex: 1, padding: "24px", overflowY: "auto" }}>
+        <div style={{ flex: compact ? "none" : 1, padding: compact ? "16px" : "24px", overflowY: compact ? "visible" : "auto" }}>
           {nav === "Overview" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <h1 style={{ fontSize: "24px", color: "var(--chrome)", fontWeight: 700 }}>
                 {activeTenant === "bangla-khabor" ? "Bangla Khabor" : activeTenant === "purvanchal" ? "Purvanchal Live" : "G+ India News"}
               </h1>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: compact ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: "16px" }}>
                 <div style={{ backgroundColor: "var(--panel)", border: "1px solid var(--line)", padding: "16px", borderRadius: "8px" }}>
                   <StatCell label="Reports published" value="2,847" />
                   <span style={{ fontSize: "11px", color: "var(--pass)" }}>+12%</span>
@@ -1605,7 +1686,8 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
           {nav === "Users" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <h2 style={{ fontSize: "24px", color: "var(--chrome)", fontWeight: 700 }}>Users</h2>
-              <table style={{ width: "100%", borderCollapse: "collapse", color: "var(--chrome)", fontSize: "13px" }}>
+              <div style={{ width: "100%", overflowX: "auto" }}>
+              <table style={{ width: "100%", minWidth: "480px", borderCollapse: "collapse", color: "var(--chrome)", fontSize: "13px" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--line)", textTransform: "uppercase", fontSize: "11px", color: "var(--chrome-soft)" }}>
                     <th style={{ padding: "12px", textAlign: "left" }}>User</th>
@@ -1630,11 +1712,12 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
           {nav === "Branding" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr" : "1fr 1fr", gap: "24px" }}>
               <div style={{ backgroundColor: "var(--panel)", border: "1px solid var(--line)", padding: "20px", borderRadius: "8px", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <h3 style={{ fontSize: "18px", color: "var(--chrome)" }}>Brand Settings</h3>
 
@@ -1697,13 +1780,8 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
 export default function App() {
   const [screen, setScreen] = useState<"A" | "B" | "C" | "D">("A");
   const [tenant, setTenant] = useState<string>("gplus");
-  const [isWide, setIsWide] = useState<boolean>(window.innerWidth >= 1024);
-
-  useEffect(() => {
-    const handleResize = () => setIsWide(window.innerWidth >= 1024);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const vw = useViewportWidth();
+  const isDesktop = vw >= 768;
 
   useEffect(() => {
     let col = "#E01B22";
@@ -1799,28 +1877,44 @@ export default function App() {
 
       {/* Active Screen Container */}
       <div style={{ height: "calc(100vh - 40px)", overflow: "hidden" }}>
-        {/* Mobile Screens A & B */}
+        {/* App Screens A & B — phone-framed on desktop, full-bleed on mobile */}
         {(screen === "A" || screen === "B") && (
-          <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center", backgroundColor: "var(--panel)" }}>
-            <div style={{ width: "100%", maxWidth: "430px", height: "100%", backgroundColor: "var(--void)" }}>
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: isDesktop ? "center" : "stretch",
+              backgroundColor: "var(--panel)",
+              padding: isDesktop ? "24px" : "0",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "430px",
+                height: isDesktop ? "min(880px, 100%)" : "100%",
+                backgroundColor: "var(--void)",
+                borderRadius: isDesktop ? "24px" : "0",
+                border: isDesktop ? "1px solid var(--line)" : "none",
+                boxShadow: isDesktop ? "0 24px 60px rgba(0,0,0,0.5)" : "none",
+                overflow: "hidden",
+              }}
+            >
               {screen === "A" && <ScreenA onComplete={() => setScreen("B")} />}
               {screen === "B" && <ScreenB onSelectTenant={setTenant} />}
             </div>
           </div>
         )}
 
-        {/* Desktop Screens C & D */}
-        {(screen === "C" || screen === "D") &&
-          (!isWide ? (
-            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--void)" }}>
-              <span style={{ fontSize: "15px", color: "var(--chrome)" }}>This screen needs a wider window.</span>
-            </div>
-          ) : (
-            <div style={{ width: "100%", height: "100%" }}>
-              {screen === "C" && <ScreenC />}
-              {screen === "D" && <ScreenD activeTenant={tenant} onSelectTenant={setTenant} />}
-            </div>
-          ))}
+        {/* Console Screens C & D — responsive multi-column that stacks on mobile */}
+        {(screen === "C" || screen === "D") && (
+          <div style={{ width: "100%", height: "100%" }}>
+            {screen === "C" && <ScreenC />}
+            {screen === "D" && <ScreenD activeTenant={tenant} onSelectTenant={setTenant} />}
+          </div>
+        )}
       </div>
     </div>
   );
