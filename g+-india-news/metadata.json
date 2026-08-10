@@ -1,0 +1,6 @@
+{
+  "name": "G+ India News",
+  "description": "Hyperlocal district video news app with onboarding, creator profiles, moderation queue, and multi-tenant admin suite for G+ India News",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
