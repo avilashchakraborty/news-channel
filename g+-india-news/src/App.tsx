@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import Portal from "./Portal";
 
 // ==========================================
 // RESPONSIVE HELPER
@@ -1778,7 +1779,7 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
 // ==========================================
 
 export default function App() {
-  const [screen, setScreen] = useState<"A" | "B" | "C" | "D">("A");
+  const [screen, setScreen] = useState<"HOME" | "A" | "B" | "C" | "D">("HOME");
   const [tenant, setTenant] = useState<string>("gplus");
   const vw = useViewportWidth();
   const isDesktop = vw >= 768;
@@ -1858,6 +1859,7 @@ export default function App() {
 
         <div style={{ display: "flex", gap: "6px" }}>
           {[
+            { key: "HOME", label: "Home" },
             { key: "A", label: "Sign in" },
             { key: "B", label: "My account" },
             { key: "C", label: "Moderation" },
@@ -1866,7 +1868,7 @@ export default function App() {
             <Pill
               key={s.key}
               variant={screen === s.key ? "brand" : "outline"}
-              onClick={() => setScreen(s.key as "A" | "B" | "C" | "D")}
+              onClick={() => setScreen(s.key as "HOME" | "A" | "B" | "C" | "D")}
               style={{ padding: "2px 8px", fontSize: "11px" }}
             >
               {s.label}
@@ -1877,6 +1879,13 @@ export default function App() {
 
       {/* Active Screen Container */}
       <div style={{ height: "calc(100vh - 40px)", overflow: "hidden" }}>
+        {/* HOME — the public web portal (SEO surface), scrolls on its own */}
+        {screen === "HOME" && (
+          <div style={{ width: "100%", height: "100%", overflowY: "auto" }}>
+            <Portal />
+          </div>
+        )}
+
         {/* App Screens A & B — phone-framed on desktop, full-bleed on mobile */}
         {(screen === "A" || screen === "B") && (
           <div
