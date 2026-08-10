@@ -1,5 +1,6 @@
 node_modules/
-lib/
+# Compiled output only — NOT the src/lib source directory.
+/lib/
 *.log
 .env
 .env.*
