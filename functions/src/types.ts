@@ -143,3 +143,60 @@ export type Comment = {
   status: "visible" | "hidden";
   createdAt: Timestamp;
 };
+
+// categories/{tenantId}__{slug}
+export type Category = {
+  tenantId: string;
+  slug: string;
+  label: string;
+  emoji: string;
+  color: string;
+  createdBy: string;
+  status: "active" | "archived";
+  createdAt: Timestamp;
+};
+
+// advertisers/{uid}_{tenantId}
+export type Advertiser = {
+  uid: string;
+  tenantId: string;
+  orgName: string;
+  walletBalance: number;
+  status: "active" | "suspended";
+  createdAt: Timestamp;
+};
+
+// campaigns/{campaignId}
+export type Campaign = {
+  advertiserId: string;
+  tenantId: string;
+  name: string;
+  objective: string;
+  dailyBudget: number;
+  districts: string[];
+  categories: string[];
+  start: string;
+  end: string;
+  status: "active" | "paused" | "ended";
+  spend: number;
+  impressions: number;
+  clicks: number;
+  createdAt: Timestamp;
+};
+
+// ads/{adId}
+export type Ad = {
+  campaignId: string;
+  advertiserId: string;
+  tenantId: string;
+  headline: string;
+  imageUrl: string;
+  cta: string;
+  url: string;
+  format: string;
+  status: "active" | "paused";
+  review: "pending" | "approved" | "rejected";
+  impressions: number;
+  clicks: number;
+  createdAt: Timestamp;
+};

@@ -111,6 +111,31 @@ service cloud.firestore {
 
     match /stats/{statId} { allow read: if auth_() != null; allow write: if false; }
 
+    // Categories are public to read; only createCategory/deleteCategory write.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Advertiser platform. All writes go through Cloud Functions; reads are
+    // scoped to the owning advertiser (or tenant admins).
+    match /advertisers/{advertiserId} {
+      allow read: if auth_() != null && (resource.data.uid == uid() || atLeast(resource.data.tenantId, 'admin'));
+      allow write: if false;
+    }
+    match /campaigns/{campaignId} {
+      allow read: if auth_() != null && (resource.data.advertiserId == uid() || atLeast(resource.data.tenantId, 'moderator'));
+      allow write: if false;
+    }
+    match /ads/{adId} {
+      allow read: if resource.data.review == 'approved'
+                  || (auth_() != null && (resource.data.advertiserId == uid() || atLeast(resource.data.tenantId, 'moderator')));
+      allow write: if false;
+    }
+    // Ad event shards are server-only.
+    match /ads/{adId}/impShards/{shardId}   { allow read, write: if false; }
+    match /ads/{adId}/clickShards/{shardId} { allow read, write: if false; }
+
     // Rate-limit ledger is server-only.
     match /rateLimits/{docId} { allow read, write: if false; }
   }

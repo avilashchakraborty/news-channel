@@ -29,7 +29,11 @@ functions/
     reporter/            requestReporterRole, reviewReporterRequest
     admin/               setMembershipRole, suspendUser, createTenant,
                          updateTenantBranding
-    scheduled/           aggregateCounters, recomputeRankScores,
+    categories/          createCategory, deleteCategory, getCategories (admin+)
+    advertiser/          advertiser accounts, campaigns, ads, ad serving
+                         (getAds) and events (recordAdEvent, sharded)
+    scheduled/           aggregateCounters, aggregateAdCounters,
+                         recomputeRankScores,
                          releaseStaleClaims, expireUploadTickets,
                          rollupDailyStats, decayTrustScores,
                          purgeDeletedAccounts, endStaleLiveStreams
