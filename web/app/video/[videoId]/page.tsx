@@ -57,6 +57,23 @@ export default async function VideoPage({ params }: { params: Params }) {
             This report appears on the public web for search and sharing. Video playback connects to the reporter feed
             (Bunny Stream) once the backend is live.
           </p>
+
+          {/* Sponsored "You might like" — served by getAds (targeted, approved) in production. */}
+          <a
+            href="https://example.com/puja"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 24, padding: 12, borderRadius: 12, border: "1px solid var(--line)", background: "var(--wash)", textDecoration: "none", color: "inherit" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://picsum.photos/seed/gplus-sponsored-puja/240/240" alt="" style={{ width: 88, height: 88, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.05em", color: "var(--ink-soft)" }}>SPONSORED · YOU MIGHT LIKE</span>
+              <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3, margin: "4px 0" }}>Biggest Puja offers at City Centre — up to 60% off</div>
+              <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>Durgapur Traders Association</span>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "var(--brand)", padding: "8px 14px", borderRadius: 999, whiteSpace: "nowrap" }}>Shop now</span>
+          </a>
         </article>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </main>
