@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AdPlacements, DEFAULT_AD_PLACEMENTS, SAMPLE_SPONSORED, SponsoredAd } from "./adConfig";
 
 // ============================================================
@@ -90,6 +90,10 @@ const GRADIENTS = [
 
 function thumbUrl(seed: string, w = 480, h = 360): string {
   return `https://picsum.photos/seed/gplus-${seed}/${w}/${h}`;
+}
+
+function compact(n: number): string {
+  return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "K" : String(n);
 }
 
 function PlayBadge({ size = 46 }: { size?: number }) {
@@ -280,7 +284,7 @@ function UtilityPanel({ label, emoji, onBack }: { label: string; emoji: string; 
   );
 }
 
-function DetailModal({ article, onClose }: { article: Article; onClose: () => void }) {
+function DetailModal({ article, onClose, sponsored, onOpenFeed }: { article: Article; onClose: () => void; sponsored?: SponsoredAd | null; onOpenFeed?: () => void }) {
   const [failed, setFailed] = useState(false);
   return (
     <div
@@ -289,9 +293,13 @@ function DetailModal({ article, onClose }: { article: Article; onClose: () => vo
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: "640px", background: PANEL, borderRadius: "16px", overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,0.4)" }}
+        style={{ width: "100%", maxWidth: "640px", maxHeight: "90vh", overflowY: "auto", background: PANEL, borderRadius: "16px", overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,0.4)" }}
       >
-        <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", background: GRADIENTS[0], display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <button
+          onClick={() => onOpenFeed?.()}
+          style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", background: GRADIENTS[0], display: "flex", alignItems: "center", justifyContent: "center", border: "none", padding: 0, cursor: "pointer" }}
+          aria-label="Play in feed"
+        >
           {!failed && (
             <img
               src={thumbUrl(article.seed, 960, 540)}
@@ -302,10 +310,12 @@ function DetailModal({ article, onClose }: { article: Article; onClose: () => vo
           )}
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
           <PlayBadge size={66} />
+        </button>
+        <div style={{ position: "relative" }}>
           <button
             onClick={onClose}
             aria-label="Close"
-            style={{ position: "absolute", top: "12px", right: "12px", width: "34px", height: "34px", borderRadius: "999px", border: "none", background: "rgba(0,0,0,0.5)", color: "#fff", cursor: "pointer", fontSize: "16px" }}
+            style={{ position: "absolute", top: "-52px", right: "12px", width: "34px", height: "34px", borderRadius: "999px", border: "none", background: "rgba(0,0,0,0.5)", color: "#fff", cursor: "pointer", fontSize: "16px" }}
           >
             ✕
           </button>
@@ -321,7 +331,138 @@ function DetailModal({ article, onClose }: { article: Article; onClose: () => vo
             Video playback connects to the reporter feed once the Bunny Stream backend is live. This preview shows how a published
             report appears to readers on the web.
           </p>
+
+          {sponsored && (
+            <a
+              href={sponsored.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "18px", padding: "12px", borderRadius: "12px", border: `1px solid ${LINE}`, background: WASH, textDecoration: "none" }}
+            >
+              <div style={{ position: "relative", width: "96px", flexShrink: 0, aspectRatio: "1 / 1", borderRadius: "8px", overflow: "hidden", background: GRADIENTS[2] }}>
+                <img src={thumbUrl(sponsored.seed, 240, 240)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.05em", color: INK_SOFT }}>SPONSORED · YOU MIGHT LIKE</span>
+                <div style={{ fontSize: "14px", fontWeight: 700, color: INK, lineHeight: 1.3, margin: "4px 0" }}>{sponsored.headline}</div>
+                <span style={{ fontSize: "12px", color: INK_SOFT }}>{sponsored.advertiser}</span>
+              </div>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "#fff", background: BRAND, padding: "8px 14px", borderRadius: "999px", whiteSpace: "nowrap" }}>{sponsored.cta}</span>
+            </a>
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Full-screen vertical "Reels" feed. Videos scroll-snap one per screen; when the
+// admin enables in-feed ads, a full-screen Sponsored slide is injected every
+// N videos (adPlacements.frequency).
+type FeedSlide = { kind: "video"; article: Article } | { kind: "ad"; ad: SponsoredAd };
+
+function FeedRail({ likes, comments }: { likes: number; comments: number }) {
+  const btn: React.CSSProperties = { width: "44px", height: "44px", borderRadius: "999px", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: "20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
+  return (
+    <div style={{ position: "absolute", right: "12px", bottom: "96px", display: "flex", flexDirection: "column", gap: "18px", alignItems: "center" }}>
+      {[
+        { icon: "♥", label: compact(likes) },
+        { icon: "💬", label: compact(comments) },
+        { icon: "↪", label: "Share" },
+      ].map((b) => (
+        <div key={b.icon} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+          <button style={btn}>{b.icon}</button>
+          <span style={{ fontSize: "11px", color: "#fff", fontWeight: 600 }}>{b.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function VerticalFeed({ items, startIndex, adPlacements, onClose }: { items: Article[]; startIndex: number; adPlacements: AdPlacements; onClose: () => void }) {
+  const scroller = useRef<HTMLDivElement>(null);
+
+  const slides = useMemo<FeedSlide[]>(() => {
+    const out: FeedSlide[] = [];
+    items.forEach((article, i) => {
+      out.push({ kind: "video", article });
+      if (adPlacements.inFeed && adPlacements.frequency > 0 && (i + 1) % adPlacements.frequency === 0) {
+        out.push({ kind: "ad", ad: SAMPLE_SPONSORED });
+      }
+    });
+    return out;
+  }, [items, adPlacements]);
+
+  // Slide index of the starting video (ads before it shift the position).
+  const startSlide = useMemo(() => {
+    let v = -1;
+    for (let i = 0; i < slides.length; i++) {
+      if (slides[i].kind === "video") v++;
+      if (v === startIndex) return i;
+    }
+    return 0;
+  }, [slides, startIndex]);
+
+  useEffect(() => {
+    const el = scroller.current?.children[startSlide] as HTMLElement | undefined;
+    el?.scrollIntoView();
+  }, [startSlide]);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 80, display: "flex", justifyContent: "center" }}>
+      <button
+        onClick={onClose}
+        aria-label="Close feed"
+        style={{ position: "absolute", top: "16px", left: "16px", zIndex: 3, width: "40px", height: "40px", borderRadius: "999px", border: "none", background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: "18px", cursor: "pointer" }}
+      >
+        ✕
+      </button>
+
+      <div
+        ref={scroller}
+        style={{ width: "100%", maxWidth: "480px", height: "100%", overflowY: "auto", scrollSnapType: "y mandatory", background: "#000" }}
+      >
+        {slides.map((slide, i) => {
+          if (slide.kind === "ad") {
+            const ad = slide.ad;
+            return (
+              <div key={`ad-${i}`} style={{ height: "100%", scrollSnapAlign: "start", position: "relative", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                <img src={thumbUrl(ad.seed, 720, 1280)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%)" }} />
+                <span style={{ position: "absolute", top: "16px", right: "16px", fontSize: "11px", fontWeight: 800, letterSpacing: "0.05em", color: "#111", background: "rgba(255,255,255,0.92)", padding: "3px 10px", borderRadius: "6px" }}>SPONSORED</span>
+                <div style={{ position: "relative", padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.85)" }}>{ad.advertiser}</span>
+                  <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#fff", lineHeight: 1.25 }}>{ad.headline}</h2>
+                  <a href={ad.url} target="_blank" rel="noopener noreferrer" style={{ alignSelf: "flex-start", marginTop: "6px", background: BRAND, color: "#fff", fontWeight: 700, fontSize: "15px", padding: "12px 24px", borderRadius: "999px", textDecoration: "none" }}>
+                    {ad.cta} →
+                  </a>
+                </div>
+              </div>
+            );
+          }
+          const a = slide.article;
+          const likes = 800 + ((i * 137) % 9000);
+          const comments = 20 + ((i * 41) % 400);
+          return (
+            <div key={a.id} style={{ height: "100%", scrollSnapAlign: "start", position: "relative", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <img src={thumbUrl(a.seed, 720, 1280)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.8) 100%)" }} />
+              <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }}>
+                <PlayBadge size={64} />
+              </div>
+              <FeedRail likes={likes} comments={comments} />
+              <div style={{ position: "relative", padding: "20px 76px 24px 20px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ width: "34px", height: "34px", borderRadius: "999px", background: BRAND, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>{a.region[0] ?? "G"}</div>
+                  <span style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>@{a.region.toLowerCase()}_reporter</span>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#fff", background: BRAND, padding: "2px 8px", borderRadius: "999px" }}>{a.category}</span>
+                </div>
+                <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#fff", lineHeight: 1.35 }}>{a.headline}</h2>
+                <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.8)" }}>{a.place} · {a.date}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -340,6 +481,13 @@ export default function Portal({
   const [chip, setChip] = useState("All");
   const [utility, setUtility] = useState<{ label: string; emoji: string } | null>(null);
   const [selected, setSelected] = useState<Article | null>(null);
+  const [feedStart, setFeedStart] = useState<number | null>(null);
+
+  const openFeedAt = (article: Article) => {
+    const idx = ARTICLES.findIndex((x) => x.id === article.id);
+    setSelected(null);
+    setFeedStart(idx >= 0 ? idx : 0);
+  };
 
   const districtRegions = new Set(["Durgapur", "Asansol", "Kolkata", "Bardhaman", "Bankura", "National"]);
 
@@ -369,6 +517,9 @@ export default function Portal({
             </span>
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button onClick={() => setFeedStart(0)} style={{ height: "38px", padding: "0 16px", borderRadius: "999px", border: `1px solid ${LINE}`, background: PANEL, color: INK, fontWeight: 700, fontSize: "14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ color: BRAND }}>▶</span> Reels
+            </button>
             <button onClick={goSignIn} style={{ height: "38px", padding: "0 18px", borderRadius: "999px", border: "none", background: BRAND, color: "#fff", fontWeight: 700, fontSize: "14px", cursor: "pointer" }}>
               Install App
             </button>
@@ -498,7 +649,18 @@ export default function Portal({
         </div>
       </footer>
 
-      {selected && <DetailModal article={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <DetailModal
+          article={selected}
+          onClose={() => setSelected(null)}
+          sponsored={adPlacements.videoDetail ? SAMPLE_SPONSORED : null}
+          onOpenFeed={() => openFeedAt(selected)}
+        />
+      )}
+
+      {feedStart !== null && (
+        <VerticalFeed items={ARTICLES} startIndex={feedStart} adPlacements={adPlacements} onClose={() => setFeedStart(null)} />
+      )}
     </div>
   );
 }
