@@ -212,6 +212,43 @@ export const purgeDeletedAccounts = onSchedule(
   },
 );
 
+// Every 5 min: sum ad impression/click shards into ads and roll up to
+// campaigns, computing spend (CPM ₹50 / 1000 + CPC ₹2). Mirrors the video
+// counter strategy so hot ads stay under the per-document write ceiling.
+export const aggregateAdCounters = onSchedule(
+  { region: REGION, schedule: "every 5 minutes" },
+  async () => {
+    const ads = await db.collection("ads").limit(500).get();
+    const campaignAgg = new Map<string, { imp: number; clk: number }>();
+    const ops: Array<(b: FirebaseFirestore.WriteBatch) => void> = [];
+
+    for (const doc of ads.docs) {
+      const [imp, clk] = await Promise.all([sumAdShards(doc.id, "impShards"), sumAdShards(doc.id, "clickShards")]);
+      if ((doc.get("impressions") as number) !== imp || (doc.get("clicks") as number) !== clk) {
+        ops.push((b) => b.update(doc.ref, { impressions: imp, clicks: clk }));
+      }
+      const cid = doc.get("campaignId") as string;
+      const agg = campaignAgg.get(cid) ?? { imp: 0, clk: 0 };
+      agg.imp += imp;
+      agg.clk += clk;
+      campaignAgg.set(cid, agg);
+    }
+
+    for (const [cid, agg] of campaignAgg) {
+      const spend = Math.round((agg.imp / 1000) * 50 + agg.clk * 2);
+      ops.push((b) => b.set(db.doc(`campaigns/${cid}`), { impressions: agg.imp, clicks: agg.clk, spend }, { merge: true }));
+    }
+    await commitInChunks(ops);
+  },
+);
+
+async function sumAdShards(adId: string, kind: "impShards" | "clickShards"): Promise<number> {
+  const snap = await db.collection(`ads/${adId}/${kind}`).get();
+  let total = 0;
+  snap.forEach((d) => (total += (d.data().count as number) ?? 0));
+  return total;
+}
+
 // Every 10 min: end live streams whose Bunny source has stopped (spec §5).
 // Heuristic without a live-status API: expire isLive videos older than 2h.
 export const endStaleLiveStreams = onSchedule(

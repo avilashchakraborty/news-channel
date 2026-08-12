@@ -284,7 +284,7 @@ function DetailModal({ article, onClose }: { article: Article; onClose: () => vo
   );
 }
 
-export default function Portal({ onNavigate }: { onNavigate?: (screen: "A" | "B" | "C" | "D") => void }) {
+export default function Portal({ onNavigate }: { onNavigate?: (screen: "A" | "B" | "C" | "D" | "E") => void }) {
   const [region, setRegion] = useState("Home");
   const [chip, setChip] = useState("All");
   const [utility, setUtility] = useState<{ label: string; emoji: string } | null>(null);
@@ -438,6 +438,7 @@ export default function Portal({ onNavigate }: { onNavigate?: (screen: "A" | "B"
         <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "24px 20px", display: "flex", flexWrap: "wrap", gap: "8px 20px", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: "13px", color: INK_SOFT }}>© 2026 G+ India News · Hyperlocal district video news</span>
           <div style={{ display: "flex", gap: "18px" }}>
+            <button onClick={() => onNavigate?.("E")} style={{ background: "none", border: "none", fontSize: "13px", color: BRAND, fontWeight: 700, cursor: "pointer" }}>Advertise with us</button>
             <button onClick={goSignIn} style={{ background: "none", border: "none", fontSize: "13px", color: INK_SOFT, cursor: "pointer" }}>Reporter login</button>
             {["About", "Terms", "Privacy"].map((l) => (
               <a key={l} href="#" onClick={(e) => e.preventDefault()} style={{ fontSize: "13px", color: INK_SOFT, textDecoration: "none" }}>{l}</a>

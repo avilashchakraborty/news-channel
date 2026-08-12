@@ -32,6 +32,23 @@ export { suspendUser } from "./admin/suspendUser";
 export { createTenant } from "./admin/createTenant";
 export { updateTenantBranding } from "./admin/updateTenantBranding";
 
+// Categories
+export { createCategory, deleteCategory, getCategories } from "./categories";
+
+// Advertiser platform
+export {
+  createAdvertiserAccount,
+  addFunds,
+  createCampaign,
+  updateCampaignStatus,
+  createAd,
+  updateAdStatus,
+  reviewAd,
+  getAdvertiserDashboard,
+  getAds,
+  recordAdEvent,
+} from "./advertiser";
+
 // Scheduled jobs
 export {
   aggregateCounters,
