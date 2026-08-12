@@ -35,6 +35,9 @@ export { updateTenantBranding } from "./admin/updateTenantBranding";
 // Categories
 export { createCategory, deleteCategory, getCategories } from "./categories";
 
+// Ad placements
+export { updateAdPlacements, getAdPlacements } from "./admin/adPlacements";
+
 // Advertiser platform
 export {
   createAdvertiserAccount,
