@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { AdPlacements, DEFAULT_AD_PLACEMENTS, SAMPLE_SPONSORED, SponsoredAd } from "./adConfig";
 
 // ============================================================
 // WEB PORTAL — public.app-style desktop news portal (light).
@@ -189,12 +190,54 @@ function VideoCard({ article, tint, onOpen }: { article: Article; tint: string; 
   );
 }
 
-function Grid({ items, onOpen }: { items: Article[]; onOpen: (a: Article) => void }) {
+function SponsoredCard({ ad, tint }: { ad: SponsoredAd; tint: string; key?: React.Key }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <a
+      href={ad.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ display: "flex", flexDirection: "column", gap: "8px", textDecoration: "none", color: "inherit" }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          aspectRatio: "4 / 3",
+          borderRadius: "10px",
+          background: tint,
+          overflow: "hidden",
+          border: `1px solid ${LINE}`,
+          transform: hover ? "translateY(-2px)" : "none",
+          boxShadow: hover ? "0 10px 26px rgba(17,20,24,0.16)" : "0 1px 2px rgba(17,20,24,0.06)",
+          transition: "transform 140ms ease, box-shadow 140ms ease",
+        }}
+      >
+        <img src={`https://picsum.photos/seed/gplus-${ad.seed}/480/360`} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        <span style={{ position: "absolute", top: "8px", left: "8px", fontSize: "10px", fontWeight: 800, letterSpacing: "0.05em", color: "#111", background: "rgba(255,255,255,0.92)", padding: "2px 7px", borderRadius: "4px" }}>SPONSORED</span>
+      </div>
+      <h3 style={{ fontSize: "14px", lineHeight: 1.35, fontWeight: 600, color: INK, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ad.headline}</h3>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+        <span style={{ fontSize: "12px", color: INK_SOFT }}>{ad.advertiser}</span>
+        <span style={{ fontSize: "12px", fontWeight: 700, color: "#fff", background: BRAND, padding: "3px 10px", borderRadius: "999px", whiteSpace: "nowrap" }}>{ad.cta}</span>
+      </div>
+    </a>
+  );
+}
+
+function Grid({ items, onOpen, sponsoredEvery, ad }: { items: Article[]; onOpen: (a: Article) => void; sponsoredEvery?: number; ad?: SponsoredAd }) {
+  const cells: React.ReactNode[] = [];
+  items.forEach((a, i) => {
+    cells.push(<VideoCard key={a.id} article={a} tint={GRADIENTS[i % GRADIENTS.length]} onOpen={onOpen} />);
+    if (ad && sponsoredEvery && sponsoredEvery > 0 && (i + 1) % sponsoredEvery === 0) {
+      cells.push(<SponsoredCard key={`ad-${i}`} ad={ad} tint={GRADIENTS[(i + 3) % GRADIENTS.length]} />);
+    }
+  });
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: "22px 18px" }}>
-      {items.map((a, i) => (
-        <VideoCard key={a.id} article={a} tint={GRADIENTS[i % GRADIENTS.length]} onOpen={onOpen} />
-      ))}
+      {cells}
     </div>
   );
 }
@@ -284,7 +327,15 @@ function DetailModal({ article, onClose }: { article: Article; onClose: () => vo
   );
 }
 
-export default function Portal({ onNavigate }: { onNavigate?: (screen: "A" | "B" | "C" | "D" | "E") => void }) {
+export default function Portal({
+  onNavigate,
+  adPlacements = DEFAULT_AD_PLACEMENTS,
+}: {
+  onNavigate?: (screen: "A" | "B" | "C" | "D" | "E") => void;
+  adPlacements?: AdPlacements;
+}) {
+  const homeAds = adPlacements.homeSponsored ? { sponsoredEvery: adPlacements.frequency, ad: SAMPLE_SPONSORED } : {};
+  const pageAds = adPlacements.districtPages ? { sponsoredEvery: adPlacements.frequency, ad: SAMPLE_SPONSORED } : {};
   const [region, setRegion] = useState("Home");
   const [chip, setChip] = useState("All");
   const [utility, setUtility] = useState<{ label: string; emoji: string } | null>(null);
@@ -410,7 +461,7 @@ export default function Portal({ onNavigate }: { onNavigate?: (screen: "A" | "B"
           <>
             <section style={{ marginTop: "12px" }}>
               <SectionHeader title="Top stories" />
-              <Grid items={ARTICLES.filter((a) => a.category === "Breaking" || a.region === "National").slice(0, 5)} onOpen={setSelected} />
+              <Grid items={ARTICLES.filter((a) => a.category === "Breaking" || a.region === "National").slice(0, 5)} onOpen={setSelected} {...homeAds} />
             </section>
             {["Durgapur", "Viral", "Kolkata"].map((title) => {
               const items =
@@ -421,7 +472,7 @@ export default function Portal({ onNavigate }: { onNavigate?: (screen: "A" | "B"
               return (
                 <section key={title} style={{ marginTop: "28px" }}>
                   <SectionHeader title={title} onMore={() => (title === "Viral" ? setChip("Viral") : setRegion(title))} />
-                  <Grid items={items} onOpen={setSelected} />
+                  <Grid items={items} onOpen={setSelected} {...homeAds} />
                 </section>
               );
             })}
@@ -429,7 +480,7 @@ export default function Portal({ onNavigate }: { onNavigate?: (screen: "A" | "B"
         ) : (
           <section style={{ marginTop: "16px" }}>
             <SectionHeader title={chip !== "All" ? `${chip}${region !== "Home" ? " · " + region : ""}` : region} />
-            {filtered.length > 0 ? <Grid items={filtered} onOpen={setSelected} /> : <EmptyState label={region === "Home" ? chip : region} />}
+            {filtered.length > 0 ? <Grid items={filtered} onOpen={setSelected} {...pageAds} /> : <EmptyState label={region === "Home" ? chip : region} />}
           </section>
         )}
       </main>

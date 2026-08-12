@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Portal from "./Portal";
 import Advertiser from "./Advertiser";
+import { AdPlacements, DEFAULT_AD_PLACEMENTS } from "./adConfig";
 
 // ==========================================
 // RESPONSIVE HELPER
@@ -1547,7 +1548,19 @@ export function ScreenC() {
 // SCREEN D: ADMIN CONSOLE (MULTI-TENANT DESKTOP)
 // ==========================================
 
-export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string; onSelectTenant: (id: string) => void }) {
+export function ScreenD({
+  activeTenant,
+  onSelectTenant,
+  adPlacements,
+  onChangeAdPlacements,
+}: {
+  activeTenant: string;
+  onSelectTenant: (id: string) => void;
+  adPlacements?: AdPlacements;
+  onChangeAdPlacements?: (p: AdPlacements) => void;
+}) {
+  const ads = adPlacements ?? DEFAULT_AD_PLACEMENTS;
+  const setAds = (patch: Partial<AdPlacements>) => onChangeAdPlacements?.({ ...ads, ...patch });
   const [nav, setNav] = useState("Overview");
   const [tenantDropdown, setTenantDropdown] = useState(false);
   const [categories, setCategories] = useState<{ id: string; label: string; emoji: string; color: string }[]>([
@@ -1634,7 +1647,7 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
             overflowX: compact ? "auto" : "visible",
           }}
         >
-          {["Overview", "Districts", "Users", "Categories", "Reporter approvals", "Moderators", "Content", "Branding", "Settings"].map((item) => (
+          {["Overview", "Districts", "Users", "Categories", "Ad placements", "Reporter approvals", "Moderators", "Content", "Branding", "Settings"].map((item) => (
             <button
               key={item}
               onClick={() => setNav(item)}
@@ -1844,7 +1857,50 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
             </div>
           )}
 
-          {nav !== "Overview" && nav !== "Users" && nav !== "Branding" && nav !== "Categories" && (
+          {nav === "Ad placements" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "640px" }}>
+              <h2 style={{ fontSize: "24px", color: "var(--chrome)", fontWeight: 700 }}>Ad placements</h2>
+              <p style={{ fontSize: "13px", color: "var(--chrome-soft)" }}>
+                Choose where advertiser ads appear across the site. Sponsored cards are drawn from approved ads that match each slot's district and category.
+              </p>
+
+              <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "10px" }}>
+                {([
+                  { key: "homeSponsored", label: "Sponsored cards on Home", desc: "Insert sponsored cards into home feed sections." },
+                  { key: "districtPages", label: "Sponsored cards on District / Category pages", desc: "Show sponsored cards on region and topic pages." },
+                  { key: "videoDetail", label: "Sponsored card on Video page", desc: "A 'You might like' sponsored card under each video." },
+                  { key: "inFeed", label: "In-feed video ads (mobile)", desc: "Full-screen sponsored video every few clips in the mobile feed." },
+                  { key: "banner", label: "Banner between sections", desc: "A banner strip between home sections." },
+                ] as { key: keyof AdPlacements; label: string; desc: string }[]).map((row, i, arr) => (
+                  <div key={row.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "14px 16px", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : "none" }}>
+                    <div>
+                      <div style={{ fontSize: "14px", color: "var(--chrome)", fontWeight: 600 }}>{row.label}</div>
+                      <div style={{ fontSize: "11px", color: "var(--chrome-soft)", marginTop: "2px" }}>{row.desc}</div>
+                    </div>
+                    <Toggle on={Boolean(ads[row.key])} onChange={(v) => setAds({ [row.key]: v } as Partial<AdPlacements>)} />
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "10px", padding: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+                <div>
+                  <div style={{ fontSize: "14px", color: "var(--chrome)", fontWeight: 600 }}>Ad frequency</div>
+                  <div style={{ fontSize: "11px", color: "var(--chrome-soft)", marginTop: "2px" }}>Show one sponsored card after every N videos.</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <button onClick={() => setAds({ frequency: Math.max(3, ads.frequency - 1) })} style={{ width: "32px", height: "32px", borderRadius: "8px", border: "1px solid var(--line)", background: "transparent", color: "var(--chrome)", cursor: "pointer", fontSize: "16px" }}>−</button>
+                  <span style={{ fontSize: "16px", fontWeight: 700, color: "var(--chrome)", minWidth: "28px", textAlign: "center" }}>{ads.frequency}</span>
+                  <button onClick={() => setAds({ frequency: Math.min(12, ads.frequency + 1) })} style={{ width: "32px", height: "32px", borderRadius: "8px", border: "1px solid var(--line)", background: "transparent", color: "var(--chrome)", cursor: "pointer", fontSize: "16px" }}>+</button>
+                </div>
+              </div>
+
+              <p style={{ fontSize: "11px", color: "var(--chrome-soft)" }}>
+                Changes preview live on the Home portal. In production they persist per tenant via <code>updateAdPlacements</code>.
+              </p>
+            </div>
+          )}
+
+          {nav !== "Overview" && nav !== "Users" && nav !== "Branding" && nav !== "Categories" && nav !== "Ad placements" && (
             <div style={{ backgroundColor: "var(--panel)", border: "1px solid var(--line)", padding: "30px", borderRadius: "8px" }}>
               <h3 style={{ fontSize: "18px", color: "var(--chrome)" }}>Not built yet</h3>
               <p style={{ fontSize: "13px", color: "var(--chrome-soft)", marginTop: "4px" }}>This section is part of the next milestone.</p>
@@ -1863,6 +1919,7 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
 export default function App() {
   const [screen, setScreen] = useState<"HOME" | "A" | "B" | "C" | "D" | "E">("HOME");
   const [tenant, setTenant] = useState<string>("gplus");
+  const [adPlacements, setAdPlacements] = useState<AdPlacements>(DEFAULT_AD_PLACEMENTS);
   const vw = useViewportWidth();
   const isDesktop = vw >= 768;
 
@@ -1957,7 +2014,7 @@ export default function App() {
         {/* HOME — the public web portal (SEO surface), scrolls on its own */}
         {screen === "HOME" && (
           <div style={{ width: "100%", height: "100%", overflowY: "auto" }}>
-            <Portal onNavigate={setScreen} />
+            <Portal onNavigate={setScreen} adPlacements={adPlacements} />
           </div>
         )}
 
@@ -1996,7 +2053,7 @@ export default function App() {
         {(screen === "C" || screen === "D" || screen === "E") && (
           <div style={{ width: "100%", height: "100%" }}>
             {screen === "C" && <ScreenC />}
-            {screen === "D" && <ScreenD activeTenant={tenant} onSelectTenant={setTenant} />}
+            {screen === "D" && <ScreenD activeTenant={tenant} onSelectTenant={setTenant} adPlacements={adPlacements} onChangeAdPlacements={setAdPlacements} />}
             {screen === "E" && <Advertiser />}
           </div>
         )}

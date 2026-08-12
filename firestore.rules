@@ -117,6 +117,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Ad-placement settings: public read (the portal reads them), admin write
+    // only via updateAdPlacements.
+    match /adSettings/{tenantId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Advertiser platform. All writes go through Cloud Functions; reads are
     // scoped to the owning advertiser (or tenant admins).
     match /advertisers/{advertiserId} {
