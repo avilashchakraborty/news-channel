@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Portal from "./Portal";
+import Advertiser from "./Advertiser";
 
 // ==========================================
 // RESPONSIVE HELPER
@@ -1549,6 +1550,14 @@ export function ScreenC() {
 export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string; onSelectTenant: (id: string) => void }) {
   const [nav, setNav] = useState("Overview");
   const [tenantDropdown, setTenantDropdown] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; label: string; emoji: string; color: string }[]>([
+    { id: "civic", label: "Civic", emoji: "🏛️", color: "#0EA5E9" },
+    { id: "crime", label: "Crime", emoji: "🚨", color: "#DC2626" },
+    { id: "politics", label: "Politics", emoji: "🗳️", color: "#B45309" },
+    { id: "sport", label: "Sport", emoji: "🏏", color: "#16A34A" },
+    { id: "weather", label: "Weather", emoji: "⛅", color: "#CA8A04" },
+  ]);
+  const [newCat, setNewCat] = useState({ label: "", emoji: "🗂️", color: "#E01B22" });
   const [brandColor, setBrandColor] = useState(
     activeTenant === "bangla-khabor" ? "#0F7B5A" : activeTenant === "purvanchal" ? "#B45309" : "#E01B22"
   );
@@ -1625,7 +1634,7 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
             overflowX: compact ? "auto" : "visible",
           }}
         >
-          {["Overview", "Districts", "Users", "Reporter approvals", "Moderators", "Content", "Branding", "Settings"].map((item) => (
+          {["Overview", "Districts", "Users", "Categories", "Reporter approvals", "Moderators", "Content", "Branding", "Settings"].map((item) => (
             <button
               key={item}
               onClick={() => setNav(item)}
@@ -1762,7 +1771,80 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
             </div>
           )}
 
-          {nav !== "Overview" && nav !== "Users" && nav !== "Branding" && (
+          {nav === "Categories" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "640px" }}>
+              <h2 style={{ fontSize: "24px", color: "var(--chrome)", fontWeight: 700 }}>Categories</h2>
+              <p style={{ fontSize: "13px", color: "var(--chrome-soft)" }}>
+                Categories reporters can file under, and readers can browse. Add your own for this tenant.
+              </p>
+
+              {/* Add form */}
+              <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "10px", padding: "16px", display: "flex", gap: "10px", alignItems: "flex-end", flexWrap: "wrap" }}>
+                <div style={{ width: "64px" }}>
+                  <label style={{ display: "block", fontSize: "11px", color: "var(--chrome-soft)", marginBottom: "4px" }}>Icon</label>
+                  <input
+                    value={newCat.emoji}
+                    onChange={(e) => setNewCat({ ...newCat, emoji: e.target.value.slice(0, 2) })}
+                    style={{ width: "100%", height: "40px", textAlign: "center", background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "8px", color: "var(--chrome)", fontSize: "18px" }}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: "160px" }}>
+                  <label style={{ display: "block", fontSize: "11px", color: "var(--chrome-soft)", marginBottom: "4px" }}>Category name</label>
+                  <input
+                    value={newCat.label}
+                    onChange={(e) => setNewCat({ ...newCat, label: e.target.value })}
+                    placeholder="e.g. Health"
+                    style={{ width: "100%", height: "40px", background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "8px", padding: "0 12px", color: "var(--chrome)", fontSize: "14px" }}
+                  />
+                </div>
+                <div style={{ width: "56px" }}>
+                  <label style={{ display: "block", fontSize: "11px", color: "var(--chrome-soft)", marginBottom: "4px" }}>Colour</label>
+                  <input
+                    type="color"
+                    value={newCat.color}
+                    onChange={(e) => setNewCat({ ...newCat, color: e.target.value })}
+                    style={{ width: "100%", height: "40px", background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "8px", cursor: "pointer" }}
+                  />
+                </div>
+                <Pill
+                  variant="brand"
+                  disabled={newCat.label.trim().length < 2}
+                  onClick={() => {
+                    const id = newCat.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+                    if (!id || categories.some((c) => c.id === id)) return;
+                    setCategories([...categories, { id, label: newCat.label.trim(), emoji: newCat.emoji || "🗂️", color: newCat.color }]);
+                    setNewCat({ label: "", emoji: "🗂️", color: "#E01B22" });
+                  }}
+                  style={{ height: "40px" }}
+                >
+                  + Add category
+                </Pill>
+              </div>
+
+              {/* List */}
+              <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "10px" }}>
+                {categories.map((c, i) => (
+                  <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: i < categories.length - 1 ? "1px solid var(--line)" : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: c.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>{c.emoji}</div>
+                      <div>
+                        <div style={{ fontSize: "14px", color: "var(--chrome)", fontWeight: 600 }}>{c.label}</div>
+                        <div style={{ fontSize: "11px", color: "var(--chrome-soft)" }}>#{c.id}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setCategories(categories.filter((x) => x.id !== c.id))}
+                      style={{ background: "none", border: "1px solid var(--line)", color: "var(--stop)", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", cursor: "pointer" }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {nav !== "Overview" && nav !== "Users" && nav !== "Branding" && nav !== "Categories" && (
             <div style={{ backgroundColor: "var(--panel)", border: "1px solid var(--line)", padding: "30px", borderRadius: "8px" }}>
               <h3 style={{ fontSize: "18px", color: "var(--chrome)" }}>Not built yet</h3>
               <p style={{ fontSize: "13px", color: "var(--chrome-soft)", marginTop: "4px" }}>This section is part of the next milestone.</p>
@@ -1779,7 +1861,7 @@ export function ScreenD({ activeTenant, onSelectTenant }: { activeTenant: string
 // ==========================================
 
 export default function App() {
-  const [screen, setScreen] = useState<"HOME" | "A" | "B" | "C" | "D">("HOME");
+  const [screen, setScreen] = useState<"HOME" | "A" | "B" | "C" | "D" | "E">("HOME");
   const [tenant, setTenant] = useState<string>("gplus");
   const vw = useViewportWidth();
   const isDesktop = vw >= 768;
@@ -1910,11 +1992,12 @@ export default function App() {
           </div>
         )}
 
-        {/* Console Screens C & D — responsive multi-column that stacks on mobile */}
-        {(screen === "C" || screen === "D") && (
+        {/* Console Screens C, D & E — responsive multi-column that stacks on mobile */}
+        {(screen === "C" || screen === "D" || screen === "E") && (
           <div style={{ width: "100%", height: "100%" }}>
             {screen === "C" && <ScreenC />}
             {screen === "D" && <ScreenD activeTenant={tenant} onSelectTenant={setTenant} />}
+            {screen === "E" && <Advertiser />}
           </div>
         )}
       </div>
