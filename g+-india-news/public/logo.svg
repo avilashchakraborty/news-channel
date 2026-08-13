@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 500" fill="none" role="img" aria-label="G Plus India News">
+  <!-- orbital swooshes -->
+  <path d="M70 180 C 150 70, 400 55, 500 130" stroke="#C8102E" stroke-width="17" stroke-linecap="round" fill="none"/>
+  <path d="M55 235 C 150 340, 400 350, 505 255" stroke="#12306B" stroke-width="17" stroke-linecap="round" fill="none"/>
+
+  <!-- G -->
+  <text x="52" y="258" font-family="Archivo, Arial, sans-serif" font-size="250" font-weight="800" font-style="italic" fill="#C8102E">G</text>
+  <!-- Plus -->
+  <text x="252" y="242" font-family="Archivo, Arial, sans-serif" font-size="132" font-weight="800" font-style="italic" fill="#12306B">Plus</text>
+
+  <!-- INDIA banner -->
+  <polygon points="122,300 452,300 432,364 102,364" fill="#12306B"/>
+  <text x="142" y="349" font-family="Archivo, Arial, sans-serif" font-size="54" font-weight="800" font-style="italic" letter-spacing="2" fill="#ffffff">INDIA</text>
+  <!-- tricolor flag -->
+  <g transform="translate(352,309)">
+    <rect x="0" y="0" width="80" height="15.3" fill="#FF9933"/>
+    <rect x="0" y="15.3" width="80" height="15.3" fill="#ffffff"/>
+    <rect x="0" y="30.6" width="80" height="15.3" fill="#138808"/>
+    <circle cx="40" cy="23" r="7.4" fill="none" stroke="#0A2A66" stroke-width="1.6"/>
+    <g stroke="#0A2A66" stroke-width="0.9">
+      <line x1="40" y1="15.6" x2="40" y2="30.4"/>
+      <line x1="32.6" y1="23" x2="47.4" y2="23"/>
+      <line x1="34.8" y1="17.8" x2="45.2" y2="28.2"/>
+      <line x1="34.8" y1="28.2" x2="45.2" y2="17.8"/>
+    </g>
+  </g>
+
+  <!-- NEWS banner -->
+  <polygon points="152,372 452,372 432,436 132,436" fill="#C8102E"/>
+  <text x="205" y="421" font-family="Archivo, Arial, sans-serif" font-size="54" font-weight="800" font-style="italic" letter-spacing="3" fill="#ffffff">NEWS</text>
+</svg>
