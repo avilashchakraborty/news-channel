@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AdPlacements, DEFAULT_AD_PLACEMENTS, SAMPLE_SPONSORED, SponsoredAd } from "./adConfig";
+import { BrandMark } from "./BrandLogo";
 
 // ============================================================
 // WEB PORTAL — public.app-style desktop news portal (light).
@@ -511,9 +512,9 @@ export default function Portal({
             onClick={() => { setRegion("Home"); setChip("All"); setUtility(null); }}
             style={{ display: "flex", alignItems: "center", gap: "10px", background: "none", border: "none", cursor: "pointer" }}
           >
-            <div style={{ width: "34px", height: "34px", borderRadius: "999px", background: BRAND, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "20px" }}>G</div>
+            <BrandMark height={34} />
             <span style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "-0.01em", color: INK }}>
-              G<span style={{ color: BRAND }}>+</span> India News
+              India News
             </span>
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>

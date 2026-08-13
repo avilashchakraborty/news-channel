@@ -14,10 +14,8 @@ export function Header({ active }: { active?: string }) {
     <header className="header">
       <div className="wrap header-row">
         <Link href="/" className="brand">
-          <span className="brand-mark">G</span>
-          <span>
-            G<span className="plus">+</span> India News
-          </span>
+          <BrandMark />
+          <span>India News</span>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button className="cta">Install App</button>
@@ -81,4 +79,32 @@ export function Footer() {
 
 export function slug(s: string): string {
   return s.toLowerCase().replace(/\s+/g, "-");
+}
+
+// G+ mark (matches the brand logo). Fixed gradient ids — rendered once per page.
+export function BrandMark() {
+  return (
+    <svg height={34} viewBox="0 0 124 92" fill="none" role="img" aria-label="G+ India News">
+      <defs>
+        <linearGradient id="bm-r" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ff4a4e" />
+          <stop offset="0.5" stopColor="#e01b22" />
+          <stop offset="1" stopColor="#8d0c11" />
+        </linearGradient>
+        <linearGradient id="bm-s" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.5" stopColor="#d2d7dd" />
+          <stop offset="1" stopColor="#868c95" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M 75.7 16.3 A 42 42 0 1 0 88 46 H 46 V 32 H 88 V 50 A 42 42 0 0 1 75.7 75.7 C 67.7 83.7 57.3 88 46 88 C 22.8 88 4 69.2 4 46 C 4 22.8 22.8 4 46 4 C 57.3 4 67.7 8.3 75.7 16.3 Z"
+        fill="url(#bm-r)"
+        stroke="#ffc9cb"
+        strokeOpacity="0.45"
+        strokeWidth="1.3"
+      />
+      <path d="M 88 30 H 104 V 50 H 120 V 66 H 104 V 86 H 88 V 66 H 72 V 50 H 88 Z" fill="url(#bm-s)" stroke="#ffffff" strokeOpacity="0.7" strokeWidth="1" />
+    </svg>
+  );
 }
