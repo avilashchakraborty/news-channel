@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Portal from "./Portal";
 import Advertiser from "./Advertiser";
 import { AdPlacements, DEFAULT_AD_PLACEMENTS } from "./adConfig";
+import { BrandMark, BrandLockup } from "./BrandLogo";
 
 // ==========================================
 // RESPONSIVE HELPER
@@ -23,24 +24,10 @@ function useViewportWidth() {
 // SHARED PRIMITIVES
 // ==========================================
 
+// The G+ India News logo. Larger sizes show the full stacked lockup
+// (mark + INDIA + NEWS); small sizes show just the G+ mark.
 export function Logo({ height = 28 }: { height?: number }) {
-  const showSubtitle = height >= 20;
-  const viewBoxWidth = showSubtitle ? 135 : 125;
-  const viewBoxHeight = showSubtitle ? 126 : 90;
-  const width = Math.round(height * (viewBoxWidth / viewBoxHeight));
-
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`} fill="none" role="img" aria-label="G+ India News Logo">
-      <path d="M 75.7 16.3 A 42 42 0 1 0 88 46 H 46 V 32 H 88 V 50 A 42 42 0 0 1 75.7 75.7 C 67.7 83.7 57.3 88 46 88 C 22.8 88 4 69.2 4 46 C 4 22.8 22.8 4 46 4 C 57.3 4 67.7 8.3 75.7 16.3 Z" fill="var(--brand)" />
-      <path d="M 88 30 H 104 V 50 H 120 V 66 H 104 V 86 H 88 V 66 H 72 V 50 H 88 Z" fill="#E9ECF0" />
-      {showSubtitle && (
-        <text x="4" y="118" fontFamily="Archivo, sans-serif" fontWeight="800" fontSize="22" letterSpacing="0.16em">
-          <tspan fill="#E9ECF0">INDIA</tspan>
-          <tspan fill="var(--brand)" dx="6">NEWS</tspan>
-        </text>
-      )}
-    </svg>
-  );
+  return height >= 34 ? <BrandLockup height={height} onDark /> : <BrandMark height={height} />;
 }
 
 export function TenantLogo({ tenantId, height = 28 }: { tenantId: string; height?: number }) {
