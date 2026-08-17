@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AdPlacements, DEFAULT_AD_PLACEMENTS, SAMPLE_SPONSORED, SponsoredAd } from "./adConfig";
 import { LogoImage } from "./BrandLogo";
+import { Lang, LANGS, makeT } from "./i18n";
+import { nearestDistrict } from "./districts";
+import UtilityView, { UTILITY_SERVICES, UtilityKey } from "./Utility";
+import { installApp } from "./pwa";
 
 // ============================================================
 // WEB PORTAL — public.app-style desktop news portal (light).
@@ -26,6 +30,7 @@ type Article = {
   state: string; // "West Bengal" | "India"
   category: string; // Breaking | Police | Civic | Politics | Viral | Accident | Sports
   seed: string; // deterministic photo seed
+  isLive?: boolean;
 };
 
 const ARTICLES: Article[] = [
@@ -33,10 +38,10 @@ const ARTICLES: Article[] = [
   { id: "d2", headline: "Traders protest at Benachity market against a new municipal levy", place: "Durgapur, Paschim Bardhaman", date: "Aug 10, 2026", region: "Durgapur", state: "West Bengal", category: "Politics", seed: "benachity" },
   { id: "d3", headline: "সিটি সেন্টারে নতুন সরকারি হাসপাতাল ভবন চালু হচ্ছে আগামী মাসে", place: "City Centre, Durgapur", date: "Aug 9, 2026", region: "Durgapur", state: "West Bengal", category: "Civic", seed: "hospital" },
   { id: "d4", headline: "Power cuts leave Muchipara residents stranded through the night", place: "Muchipara, Durgapur", date: "Aug 9, 2026", region: "Durgapur", state: "West Bengal", category: "Civic", seed: "powercut" },
-  { id: "d5", headline: "Water level rises at Durgapur Barrage after upstream rain", place: "Durgapur Barrage", date: "Aug 8, 2026", region: "Durgapur", state: "West Bengal", category: "Breaking", seed: "barrage" },
+  { id: "d5", headline: "Water level rises at Durgapur Barrage after upstream rain", place: "Durgapur Barrage", date: "Aug 8, 2026", region: "Durgapur", state: "West Bengal", category: "Breaking", seed: "barrage", isLive: true },
   { id: "d6", headline: "Bike rider hurt as truck jumps signal on the NH-19 bypass", place: "Rajbandh, Durgapur", date: "Aug 8, 2026", region: "Durgapur", state: "West Bengal", category: "Accident", seed: "nh19" },
 
-  { id: "a1", headline: "Coal-belt cooperative announces record payout to member families", place: "Asansol, Paschim Bardhaman", date: "Aug 9, 2026", region: "Asansol", state: "West Bengal", category: "Politics", seed: "asansol-coal" },
+  { id: "a1", headline: "Coal-belt cooperative announces record payout to member families", place: "Asansol, Paschim Bardhaman", date: "Aug 9, 2026", region: "Asansol", state: "West Bengal", category: "Politics", seed: "asansol-coal", isLive: true },
   { id: "a2", headline: "Night patrols stepped up after a spate of two-wheeler thefts", place: "Asansol, Paschim Bardhaman", date: "Aug 8, 2026", region: "Asansol", state: "West Bengal", category: "Police", seed: "asansol-patrol" },
   { id: "a3", headline: "Local club's football final draws a packed ground in Asansol", place: "Asansol, Paschim Bardhaman", date: "Aug 7, 2026", region: "Asansol", state: "West Bengal", category: "Sports", seed: "asansol-football" },
 
@@ -469,6 +474,53 @@ function VerticalFeed({ items, startIndex, adPlacements, onClose }: { items: Art
   );
 }
 
+function SearchOverlay({
+  query,
+  setQuery,
+  results,
+  placeholder,
+  onPick,
+  onClose,
+}: {
+  query: string;
+  setQuery: (v: string) => void;
+  results: Article[];
+  placeholder: string;
+  onPick: (a: Article) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 90, display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "12vh 16px 16px" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: "620px", background: PANEL, borderRadius: "14px", overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,0.4)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: `1px solid ${LINE}` }}>
+          <span style={{ color: INK_SOFT }}>🔍</span>
+          <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder={placeholder} style={{ flex: 1, border: "none", outline: "none", fontSize: "16px", color: INK, background: "transparent" }} />
+          <button onClick={onClose} style={{ background: "none", border: "none", color: INK_SOFT, cursor: "pointer", fontSize: "16px" }}>✕</button>
+        </div>
+        <div style={{ maxHeight: "60vh", overflowY: "auto" }}>
+          {query.trim() === "" ? (
+            <div style={{ padding: "24px", color: INK_SOFT, fontSize: "14px" }}>Type to search videos, districts and topics…</div>
+          ) : results.length === 0 ? (
+            <div style={{ padding: "24px", color: INK_SOFT, fontSize: "14px" }}>No results for “{query}”.</div>
+          ) : (
+            results.map((a) => (
+              <button key={a.id} onClick={() => onPick(a)} style={{ width: "100%", textAlign: "left", display: "flex", gap: "12px", alignItems: "center", padding: "12px 16px", background: "none", border: "none", borderBottom: `1px solid ${LINE}`, cursor: "pointer" }}>
+                <img src={`https://picsum.photos/seed/gplus-${a.seed}/120/90`} alt="" style={{ width: 56, height: 42, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: "14px", fontWeight: 600, color: INK }}>{a.headline}</div>
+                  <div style={{ fontSize: "12px", color: INK_SOFT }}>
+                    {a.region} · {a.category}
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Portal({
   onNavigate,
   adPlacements = DEFAULT_AD_PLACEMENTS,
@@ -478,11 +530,41 @@ export default function Portal({
 }) {
   const homeAds = adPlacements.homeSponsored ? { sponsoredEvery: adPlacements.frequency, ad: SAMPLE_SPONSORED } : {};
   const pageAds = adPlacements.districtPages ? { sponsoredEvery: adPlacements.frequency, ad: SAMPLE_SPONSORED } : {};
-  const [region, setRegion] = useState("Home");
+  // Location-first: the feed opens on the user's district (refined by GPS below).
+  const [region, setRegion] = useState("Durgapur");
   const [chip, setChip] = useState("All");
-  const [utility, setUtility] = useState<{ label: string; emoji: string } | null>(null);
+  const [service, setService] = useState<UtilityKey | null>(null);
   const [selected, setSelected] = useState<Article | null>(null);
   const [feedStart, setFeedStart] = useState<number | null>(null);
+  const [lang, setLang] = useState<Lang>("en");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [located, setLocated] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const t = makeT(lang);
+
+  const detectLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const d = nearestDistrict(pos.coords.latitude, pos.coords.longitude);
+        setLocated(d);
+        setRegion(d);
+        setService(null);
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { timeout: 8000, maximumAge: 600000 },
+    );
+  };
+
+  // Try to point the feed at the user's district as soon as the app opens.
+  useEffect(() => {
+    detectLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openFeedAt = (article: Article) => {
     const idx = ARTICLES.findIndex((x) => x.id === article.id);
@@ -501,26 +583,60 @@ export default function Portal({
     return list;
   }, [region, chip]);
 
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return ARTICLES.filter(
+      (a) =>
+        a.headline.toLowerCase().includes(q) ||
+        a.place.toLowerCase().includes(q) ||
+        a.region.toLowerCase().includes(q) ||
+        a.category.toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  const liveArticles = useMemo(() => ARTICLES.filter((a) => a.isLive), []);
+
   const goSignIn = () => onNavigate?.("A");
 
   return (
     <div style={{ width: "100%", minHeight: "100%", backgroundColor: WASH, color: INK, fontFamily: "'Archivo','Anek Bangla','Anek Devanagari',sans-serif" }}>
+      <style>{`
+        @keyframes gpTicker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        @keyframes gpPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+      `}</style>
       {/* Header */}
       <header style={{ position: "sticky", top: 0, zIndex: 20, backgroundColor: PANEL, borderBottom: `1px solid ${LINE}` }}>
         <div style={{ maxWidth: "1400px", margin: "0 auto", height: "64px", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
           <button
-            onClick={() => { setRegion("Home"); setChip("All"); setUtility(null); }}
+            onClick={() => { setRegion("Home"); setChip("All"); setService(null); }}
             style={{ display: "flex", alignItems: "center", gap: "10px", background: "none", border: "none", cursor: "pointer" }}
           >
             <LogoImage height={46} />
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <button onClick={() => setFeedStart(0)} style={{ height: "38px", padding: "0 16px", borderRadius: "999px", border: `1px solid ${LINE}`, background: PANEL, color: INK, fontWeight: 700, fontSize: "14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ color: BRAND }}>▶</span> Reels
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button onClick={() => setSearchOpen(true)} aria-label="Search" style={{ width: "38px", height: "38px", borderRadius: "999px", border: `1px solid ${LINE}`, background: PANEL, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "16px" }}>
+              🔍
             </button>
-            <button onClick={goSignIn} style={{ height: "38px", padding: "0 18px", borderRadius: "999px", border: "none", background: BRAND, color: "#fff", fontWeight: 700, fontSize: "14px", cursor: "pointer" }}>
-              Install App
+
+            {/* Language switcher */}
+            <div style={{ display: "flex", border: `1px solid ${LINE}`, borderRadius: "999px", overflow: "hidden" }}>
+              {LANGS.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => setLang(l.code)}
+                  style={{ height: "38px", padding: "0 10px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: 700, background: lang === l.code ? BRAND : PANEL, color: lang === l.code ? "#fff" : INK_SOFT }}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={() => setNotifOpen((v) => !v)} aria-label={t("notifications")} style={{ position: "relative", width: "38px", height: "38px", borderRadius: "999px", border: `1px solid ${LINE}`, background: PANEL, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "16px" }}>
+              🔔
+              <span style={{ position: "absolute", top: "6px", right: "7px", width: "8px", height: "8px", borderRadius: "999px", background: BRAND }} />
             </button>
+
             <button onClick={goSignIn} aria-label="Sign in" style={{ width: "38px", height: "38px", borderRadius: "999px", border: `1px solid ${LINE}`, background: PANEL, display: "flex", alignItems: "center", justifyContent: "center", color: INK_SOFT, cursor: "pointer" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="8" r="4" />
@@ -530,15 +646,48 @@ export default function Portal({
           </div>
         </div>
 
+        {/* Location + actions bar */}
+        <div style={{ borderTop: `1px solid ${LINE}`, background: WASH }}>
+          <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "8px 20px", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "13px", fontWeight: 700, color: INK }}>
+              📍 {locating ? t("detecting") : region === "Home" ? t("nearYou") : region}
+            </span>
+            <button onClick={detectLocation} style={{ fontSize: "12px", fontWeight: 600, color: BRAND, background: "none", border: "none", cursor: "pointer" }}>
+              {t("useLoc")}
+            </button>
+            <div style={{ flex: 1 }} />
+            <button onClick={() => setFeedStart(0)} style={{ height: "32px", padding: "0 12px", borderRadius: "999px", border: `1px solid ${LINE}`, background: PANEL, color: INK, fontWeight: 700, fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
+              <span style={{ color: BRAND }}>▶</span> {t("reels")}
+            </button>
+            <button onClick={() => installApp().then((ok) => { if (!ok) goSignIn(); })} style={{ height: "32px", padding: "0 14px", borderRadius: "999px", border: "none", background: BRAND, color: "#fff", fontWeight: 700, fontSize: "13px", cursor: "pointer" }}>
+              {t("install")}
+            </button>
+          </div>
+        </div>
+
+        {/* Breaking ticker */}
+        <div style={{ background: BRAND, color: "#fff", overflow: "hidden" }}>
+          <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "6px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.05em", background: "#fff", color: BRAND, padding: "2px 8px", borderRadius: "4px", flexShrink: 0 }}>
+              🔴 {t("breaking")}
+            </span>
+            <div style={{ overflow: "hidden", whiteSpace: "nowrap", flex: 1 }}>
+              <span style={{ display: "inline-block", fontSize: "13px", fontWeight: 600, animation: "gpTicker 22s linear infinite" }}>
+                {ARTICLES.filter((a) => a.category === "Breaking").map((a) => a.headline).join("     •     ")}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Region nav */}
         <nav style={{ borderTop: `1px solid ${LINE}` }}>
           <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "0 12px", display: "flex", gap: "4px", overflowX: "auto" }}>
             {REGIONS.map((r) => {
-              const on = r === region && !utility;
+              const on = r === region && !service;
               return (
                 <button
                   key={r}
-                  onClick={() => { setRegion(r); setUtility(null); }}
+                  onClick={() => { setRegion(r); setService(null); }}
                   style={{
                     flex: "none",
                     background: "none",
@@ -568,7 +717,7 @@ export default function Portal({
             return (
               <button
                 key={t}
-                onClick={() => { setChip(t); setUtility(null); }}
+                onClick={() => { setChip(t); setService(null); }}
                 style={{
                   flex: "none",
                   fontSize: "13px",
@@ -590,10 +739,10 @@ export default function Portal({
 
         {/* Category quick links */}
         <div style={{ display: "flex", gap: "18px", overflowX: "auto", padding: "20px 0" }}>
-          {CATEGORIES.map((c) => (
+          {UTILITY_SERVICES.map((c) => (
             <button
-              key={c.label}
-              onClick={() => setUtility({ label: c.label, emoji: c.emoji })}
+              key={c.key}
+              onClick={() => setService(c.key)}
               style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", width: "72px", background: "none", border: "none", cursor: "pointer", color: INK }}
             >
               <div style={{ width: "62px", height: "62px", borderRadius: "16px", background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "26px" }}>{c.emoji}</div>
@@ -602,14 +751,35 @@ export default function Portal({
           ))}
         </div>
 
+        {/* Live now */}
+        {liveArticles.length > 0 && (
+          <section style={{ marginTop: "6px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 800, color: "#fff", background: BRAND, padding: "4px 10px", borderRadius: "999px" }}>
+                <span style={{ width: "8px", height: "8px", borderRadius: "999px", background: "#fff", animation: "gpPulse 1.2s infinite" }} /> {t("liveNow")}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "4px" }}>
+              {liveArticles.map((a) => (
+                <button key={a.id} onClick={() => openFeedAt(a)} style={{ flex: "none", width: "220px", textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+                  <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", borderRadius: "10px", overflow: "hidden", border: `1px solid ${LINE}` }}>
+                    <img src={thumbUrl(a.seed, 400, 225)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                    <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 800, color: "#fff", background: BRAND, padding: "2px 8px", borderRadius: 4 }}>● {t("live")}</span>
+                  </div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: INK, marginTop: "6px" }}>{a.headline}</div>
+                  <div style={{ fontSize: "12px", color: INK_SOFT }}>{a.region}</div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Body */}
-        {utility ? (
-          <UtilityPanel label={utility.label} emoji={utility.emoji} onBack={() => setUtility(null)} />
-        ) : region === "Home" && chip === "All" ? (
+        {region === "Home" && chip === "All" ? (
           // Curated home: sections like public.app
           <>
             <section style={{ marginTop: "12px" }}>
-              <SectionHeader title="Top stories" />
+              <SectionHeader title={t("topStories")} />
               <Grid items={ARTICLES.filter((a) => a.category === "Breaking" || a.region === "National").slice(0, 5)} onOpen={setSelected} {...homeAds} />
             </section>
             {["Durgapur", "Viral", "Kolkata"].map((title) => {
@@ -658,6 +828,52 @@ export default function Portal({
 
       {feedStart !== null && (
         <VerticalFeed items={ARTICLES} startIndex={feedStart} adPlacements={adPlacements} onClose={() => setFeedStart(null)} />
+      )}
+
+      {service && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 70, overflowY: "auto", background: WASH }}>
+          <UtilityView service={service} district={region} onBack={() => setService(null)} />
+        </div>
+      )}
+
+      {searchOpen && (
+        <SearchOverlay
+          query={query}
+          setQuery={setQuery}
+          results={searchResults}
+          placeholder={t("searchPh")}
+          onPick={(a) => {
+            setSearchOpen(false);
+            setQuery("");
+            setSelected(a);
+          }}
+          onClose={() => {
+            setSearchOpen(false);
+            setQuery("");
+          }}
+        />
+      )}
+
+      {notifOpen && (
+        <>
+          <div onClick={() => setNotifOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+          <div style={{ position: "fixed", top: "62px", right: "20px", width: "330px", maxWidth: "90vw", background: PANEL, border: `1px solid ${LINE}`, borderRadius: "12px", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", zIndex: 41, overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${LINE}`, fontWeight: 700, fontSize: "14px", color: INK }}>{t("notifications")}</div>
+            {[
+              { icon: "🔴", title: "Breaking: Water level rises at Durgapur Barrage", time: "2m" },
+              { icon: "📹", title: "New video from @durgapur_reporter near you", time: "18m" },
+              { icon: "✅", title: "Your reporter application was approved", time: "1h" },
+            ].map((n, i) => (
+              <div key={i} style={{ display: "flex", gap: "10px", padding: "12px 16px", borderBottom: `1px solid ${LINE}` }}>
+                <span>{n.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "13px", color: INK, lineHeight: 1.35 }}>{n.title}</div>
+                  <div style={{ fontSize: "11px", color: INK_SOFT, marginTop: "2px" }}>{n.time} ago</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
