@@ -1,0 +1,16 @@
+{
+  "name": "G Plus India News",
+  "short_name": "GPlus News",
+  "description": "Hyperlocal district video news from across India.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d10",
+  "theme_color": "#C8102E",
+  "categories": ["news", "video"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
