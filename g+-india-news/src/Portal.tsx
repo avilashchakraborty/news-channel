@@ -610,9 +610,12 @@ export default function Portal({
         <div style={{ maxWidth: "1400px", margin: "0 auto", height: "64px", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
           <button
             onClick={() => { setRegion("Home"); setChip("All"); setService(null); }}
-            style={{ display: "flex", alignItems: "center", gap: "10px", background: "none", border: "none", cursor: "pointer" }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "2px", background: "none", border: "none", cursor: "pointer" }}
           >
-            <LogoImage height={46} />
+            <LogoImage height={40} />
+            <span style={{ fontSize: "10px", fontWeight: 700, fontStyle: "italic", color: BRAND, letterSpacing: "0.01em", whiteSpace: "nowrap" }}>
+              Sach Ka Saamna, Sach Ke Sath
+            </span>
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button onClick={() => setSearchOpen(true)} aria-label="Search" style={{ width: "38px", height: "38px", borderRadius: "999px", border: `1px solid ${LINE}`, background: PANEL, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "16px" }}>
