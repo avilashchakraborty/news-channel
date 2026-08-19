@@ -467,6 +467,9 @@ export function ScreenA({ onComplete }: { onComplete: () => void }) {
         {step === 1 && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "16px" }}>
             <Logo height={72} />
+            <span style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, fontStyle: "italic", fontSize: "13px", color: "var(--brand)", letterSpacing: "0.02em" }}>
+              Sach Ka Saamna, Sach Ke Sath
+            </span>
             <h1 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: "24px", color: "var(--chrome)" }}>News from your district</h1>
             <p style={{ fontFamily: "Archivo, sans-serif", fontSize: "15px", color: "var(--chrome-soft)", lineHeight: 1.45 }}>
               Watch what's happening around you. Report what others are missing.

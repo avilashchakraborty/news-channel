@@ -14,8 +14,11 @@ export function Header({ active }: { active?: string }) {
   return (
     <header className="header">
       <div className="wrap header-row">
-        <Link href="/" className="brand">
-          <LogoImg height={46} />
+        <Link href="/" className="brand" style={{ flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
+          <LogoImg height={40} />
+          <span style={{ fontSize: 10, fontWeight: 700, fontStyle: "italic", color: "var(--brand)", letterSpacing: "0.01em", whiteSpace: "nowrap" }}>
+            Sach Ka Saamna, Sach Ke Sath
+          </span>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button className="cta">Install App</button>

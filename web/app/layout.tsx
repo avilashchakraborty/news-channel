@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 const SITE = "G+ India News";
-const DESC = "Hyperlocal district video news from across India — civic reports, breaking news and voices from your neighbourhood.";
+const TAGLINE = "Sach Ka Saamna, Sach Ke Sath";
+const DESC = `${TAGLINE}. Hyperlocal district video news from across India — civic reports, breaking news and voices from your neighbourhood.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://news-channel-one.vercel.app"),
