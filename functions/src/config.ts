@@ -25,7 +25,10 @@ export const PHONE_ENCRYPTION_KEY = defineSecret("PHONE_ENCRYPTION_KEY");
 
 // Base options every callable shares. App Check is enforced everywhere:
 // without it, recordView and toggleLike are trivially scriptable (spec §1).
+// For a first deploy before App Check / reCAPTCHA is wired, set
+// ENFORCE_APP_CHECK=false in functions/.env to test, then remove it (defaults
+// to enforced).
 export const callableBase: CallableOptions = {
   region: REGION,
-  enforceAppCheck: true,
+  enforceAppCheck: process.env.ENFORCE_APP_CHECK !== "false",
 };
