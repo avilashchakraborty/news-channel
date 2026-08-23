@@ -5,6 +5,7 @@ import { Lang, LANGS, makeT } from "./i18n";
 import { nearestDistrict } from "./districts";
 import UtilityView, { UTILITY_SERVICES, UtilityKey } from "./Utility";
 import { installApp } from "./pwa";
+import { firebaseEnabled, api, DEFAULT_TENANT, FeedItem } from "./api";
 
 // ============================================================
 // WEB PORTAL — public.app-style desktop news portal (light).
@@ -32,6 +33,21 @@ type Article = {
   seed: string; // deterministic photo seed
   isLive?: boolean;
 };
+
+// Map a backend feed item to the portal's Article shape.
+function mapFeed(items: FeedItem[]): Article[] {
+  return items.map((it) => ({
+    id: it.id,
+    headline: it.headline,
+    place: it.districtId,
+    date: it.publishedAt ? new Date(it.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "",
+    region: it.districtId,
+    state: "",
+    category: it.category,
+    seed: it.id,
+    isLive: it.isLive,
+  }));
+}
 
 const ARTICLES: Article[] = [
   { id: "d1", headline: "Road caves in near Durgapur Steel Plant, two-hour diversion in place", place: "Durgapur, Paschim Bardhaman", date: "Aug 10, 2026", region: "Durgapur", state: "West Bengal", category: "Civic", seed: "durgapur-road" },
@@ -542,7 +558,11 @@ export default function Portal({
   const [located, setLocated] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [feed, setFeed] = useState<Article[] | null>(null);
   const t = makeT(lang);
+
+  // Live feed when Firebase is configured; otherwise built-in sample data.
+  const data = feed ?? ARTICLES;
 
   const detectLocation = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
@@ -566,8 +586,24 @@ export default function Portal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load the district's published videos from the backend when configured.
+  useEffect(() => {
+    if (!firebaseEnabled || region === "Home") {
+      setFeed(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const res = await api.getFeed({ tenantId: DEFAULT_TENANT, districtId: region.toLowerCase(), scope: "district", limit: 20 });
+      if (!cancelled && res && Array.isArray(res.items) && res.items.length) setFeed(mapFeed(res.items));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [region]);
+
   const openFeedAt = (article: Article) => {
-    const idx = ARTICLES.findIndex((x) => x.id === article.id);
+    const idx = data.findIndex((x) => x.id === article.id);
     setSelected(null);
     setFeedStart(idx >= 0 ? idx : 0);
   };
@@ -575,27 +611,29 @@ export default function Portal({
   const districtRegions = new Set(["Durgapur", "Asansol", "Kolkata", "Bardhaman", "Bankura", "National"]);
 
   const filtered = useMemo(() => {
-    let list = ARTICLES;
+    let list = data;
     if (region !== "Home") {
       list = list.filter((a) => (districtRegions.has(region) ? a.region === region : a.state === region));
     }
     if (chip !== "All") list = list.filter((a) => a.category === chip);
     return list;
-  }, [region, chip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [region, chip, data]);
 
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return ARTICLES.filter(
+    return data.filter(
       (a) =>
         a.headline.toLowerCase().includes(q) ||
         a.place.toLowerCase().includes(q) ||
         a.region.toLowerCase().includes(q) ||
         a.category.toLowerCase().includes(q),
     );
-  }, [query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, data]);
 
-  const liveArticles = useMemo(() => ARTICLES.filter((a) => a.isLive), []);
+  const liveArticles = useMemo(() => data.filter((a) => a.isLive), [data]);
 
   const goSignIn = () => onNavigate?.("A");
 
@@ -676,7 +714,7 @@ export default function Portal({
             </span>
             <div style={{ overflow: "hidden", whiteSpace: "nowrap", flex: 1 }}>
               <span style={{ display: "inline-block", fontSize: "13px", fontWeight: 600, animation: "gpTicker 22s linear infinite" }}>
-                {ARTICLES.filter((a) => a.category === "Breaking").map((a) => a.headline).join("     •     ")}
+                {data.filter((a) => a.category === "Breaking").map((a) => a.headline).join("     •     ")}
               </span>
             </div>
           </div>
@@ -783,13 +821,13 @@ export default function Portal({
           <>
             <section style={{ marginTop: "12px" }}>
               <SectionHeader title={t("topStories")} />
-              <Grid items={ARTICLES.filter((a) => a.category === "Breaking" || a.region === "National").slice(0, 5)} onOpen={setSelected} {...homeAds} />
+              <Grid items={data.filter((a) => a.category === "Breaking" || a.region === "National").slice(0, 5)} onOpen={setSelected} {...homeAds} />
             </section>
             {["Durgapur", "Viral", "Kolkata"].map((title) => {
               const items =
                 title === "Viral"
-                  ? ARTICLES.filter((a) => a.category === "Viral")
-                  : ARTICLES.filter((a) => a.region === title);
+                  ? data.filter((a) => a.category === "Viral")
+                  : data.filter((a) => a.region === title);
               if (items.length === 0) return null;
               return (
                 <section key={title} style={{ marginTop: "28px" }}>
@@ -830,7 +868,7 @@ export default function Portal({
       )}
 
       {feedStart !== null && (
-        <VerticalFeed items={ARTICLES} startIndex={feedStart} adPlacements={adPlacements} onClose={() => setFeedStart(null)} />
+        <VerticalFeed items={data} startIndex={feedStart} adPlacements={adPlacements} onClose={() => setFeedStart(null)} />
       )}
 
       {service && (
