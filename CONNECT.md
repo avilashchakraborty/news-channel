@@ -51,8 +51,8 @@ Set the non-secret params (`BUNNY_STREAM_LIBRARY_ID`, `BUNNY_STREAM_CDN_HOSTNAME
 params before deploying.
 
 > **First-run tip:** the callables enforce **App Check** (step 6). To test
-> before wiring App Check, you can temporarily set `enforceAppCheck: false` in
-> `functions/src/config.ts` (`callableBase`), deploy, then turn it back on.
+> before wiring App Check, add `ENFORCE_APP_CHECK=false` to `functions/.env`,
+> deploy, then remove it (defaults to enforced) once App Check is set up.
 
 ## 5. Web app config → env
 
