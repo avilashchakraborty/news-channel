@@ -3,6 +3,7 @@ import Portal from "./Portal";
 import Advertiser from "./Advertiser";
 import { AdPlacements, DEFAULT_AD_PLACEMENTS } from "./adConfig";
 import { BrandMark, BrandLockup } from "./BrandLogo";
+import { firebaseEnabled, signInWithGoogle } from "./api";
 
 // ==========================================
 // RESPONSIVE HELPER
@@ -434,6 +435,30 @@ export function ScreenA({ onComplete }: { onComplete: () => void }) {
   const isUsernameTaken = username === "balram" || username === "admin";
   const isUsernameValid = username.length >= 4 && !isUsernameTaken && !checkingUsername;
 
+  // Real Google sign-in when Firebase is configured; otherwise the mock chooser.
+  const handleGoogle = async () => {
+    if (!firebaseEnabled) {
+      setAccountSheet(true);
+      return;
+    }
+    setLoadingAccount(true);
+    try {
+      const user = await signInWithGoogle();
+      if (user) {
+        const email = user.email ?? "";
+        const dn = user.displayName ?? (email ? email.split("@")[0] : "Reader");
+        setChosenAccount({ name: dn, email });
+        setName(dn);
+        setUsername((email.split("@")[0] || dn).toLowerCase().replace(/[^a-z0-9_]/g, ""));
+        setStep(3);
+      }
+    } catch (e) {
+      console.warn("Google sign-in failed", e);
+    } finally {
+      setLoadingAccount(false);
+    }
+  };
+
   const handleSelectAccount = (acc: { name: string; email: string }) => {
     setLoadingAccount(true);
     setTimeout(() => {
@@ -478,7 +503,7 @@ export function ScreenA({ onComplete }: { onComplete: () => void }) {
             <div style={{ width: "100%", marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
               <button
                 type="button"
-                onClick={() => setAccountSheet(true)}
+                onClick={handleGoogle}
                 style={{
                   width: "100%",
                   height: "52px",
